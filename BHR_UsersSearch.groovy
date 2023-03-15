@@ -1,4 +1,6 @@
 import com.ibm.db2.cmx.internal.json4j.JSONObject
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import org.apache.commons.lang3.StringUtils
 import org.apache.http.HttpHeaders
 import org.apache.http.protocol.HTTP
@@ -17,6 +19,7 @@ import org.openiam.constants.ProvisionConnectorConstant
 import org.openiam.http.client.OpenIAMHttpClient
 import org.openiam.http.model.HttpClientResponseWrapper
 import org.springframework.context.ApplicationContext
+import org.apache.commons.collections4.CollectionUtils
 
 
 class SearchScriptConnector extends AbstractCommandExecutor<UserConnectorObject, SearchUserProvisioningConnectorResponse> {
@@ -35,28 +38,47 @@ class SearchScriptConnector extends AbstractCommandExecutor<UserConnectorObject,
         Set<String> attributeNames = this.getReturnAttributeNames(request);
         CustomJacksonMapper mapper = context.getBean(CustomJacksonMapper.class)
         ConnectorObjectMetaData meta = request.getMetaData();
-        client = new OpenIAMHttpClient();
+        //client = new OpenIAMHttpClient();
         String hostUrl = meta.getUrl();
         GET_USERS_URL = hostUrl + GET_USERS_URL;
         String token = getBasicAuth(meta)
         String fetchAPI = GET_USERS_URL;
 
-        final Map<String, String> loginHeaders = new HashMap<>();
-        loginHeaders.put(HTTP.CONTENT_TYPE, "application/json; utf-8");
-        loginHeaders.put(HttpHeaders.ACCEPT, "application/json");
-        loginHeaders.put(HttpHeaders.AUTHORIZATION, token);
-        HttpClientResponseWrapper httpClientResponseWrapper = client.doGet(new URL(fetchAPI), loginHeaders, null, null);
-        List<LinkedHashMap> searchUserResponseArr = mapper.readValue(httpClientResponseWrapper.getResponse(), ArrayList.class);
-        println("result of API GET USERS:" + httpClientResponseWrapper.getResponse())
-        for (LinkedHashMap data : searchUserResponseArr) {
-            result.add(jsonToUserConnector(data, attributeNames, request.getIdentityName()))
+        URL url = new URL(GET_USERS_URL)
+        HttpURLConnection connection = (HttpURLConnection)url.openConnection()
+        connection.setRequestMethod("GET")
+
+
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Authorization", token)
+
+        int resp = connection.getResponseCode()
+        StringBuffer content = new StringBuffer()
+        if (resp.equals(200)) {
+            BufferedReader inp = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream()))
+            String inputLine
+            while ((inputLine = inp.readLine()) != null) {
+                content.append(inputLine)
+            }
+            inp.close()
         }
-        println("end of user Search script..." + result.subList(0, 10));
-        response.setUserList(result)
-        return response;
+        def jsonObject = new JsonSlurper().parseText(content.toString())
+        def content_employees = JsonOutput.toJson(jsonObject["employees"])
+
+        List<LinkedHashMap> searchUserResponseArr = mapper.readValue(content_employees, ArrayList.class);
+        if (CollectionUtils.isNotEmpty(searchUserResponseArr)) {
+            for (LinkedHashMap data : searchUserResponseArr) {
+                result.add(jsonToUserConnector(data, attributeNames, request.getIdentityName()))
+            }
+            println("end of user Search script..." + result.subList(0, 10));
+            response.setUserList(result)
+            return response;
+        }
     }
 
     private static UserConnectorObject jsonToUserConnector(LinkedHashMap jsonObj, Set<String> attributeNames, String identityName) {
+        println("Calling jsonToUserConnector");
         if (attributeNames == null)
             return null;
         UserConnectorObject userConnectorObject = new UserConnectorObject();
