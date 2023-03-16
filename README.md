@@ -36,7 +36,7 @@ Preprocessor Script: -
 Postprocessor Script: -
 Validation Rule: /sync/user/csv/CSVSampleValidationScript.groovy
 Transformation Implementation: Transformation Scripts
-Transformation Rule: ??
+Transformation Rule: /sync/user/bamboohr/BHR_UserTransformation.groovy
 OpenIAM field name: PRIMARY EMAIL ADDRESS
 Source Attribute Name: workEmail
 Custom rule for matching: -
