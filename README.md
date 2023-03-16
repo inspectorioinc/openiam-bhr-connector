@@ -1,6 +1,6 @@
 # openiam-bhr-connector
 
-Managed System
+Managed System 
 Connector: Groovy Script CONNECTOR
 Managed System Name: BambooHR
 Description: BambooHR Groovy Script Managed System
