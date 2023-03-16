@@ -63,13 +63,11 @@ class SearchScriptConnector extends AbstractCommandExecutor<UserConnectorObject,
             }
             inp.close()
         }
-        def jsonObject = new JsonSlurper().parseText(content.toString())
-        def content_employees = JsonOutput.toJson(jsonObject["employees"])
+        List<LinkedHashMap> employeeList = new JsonSlurper().parseText(content.toString())["employees"] as List<LinkedHashMap>
 
-        List<LinkedHashMap> searchUserResponseArr = mapper.readValue(content_employees, ArrayList.class);
-        if (CollectionUtils.isNotEmpty(searchUserResponseArr)) {
-            for (LinkedHashMap data : searchUserResponseArr) {
-                result.add(jsonToUserConnector(data, attributeNames, request.getIdentityName()))
+        if (CollectionUtils.isNotEmpty(employeeList)) {
+            for (LinkedHashMap employeeData : employeeList) {
+                result.add(jsonToUserConnector(employeeData, attributeNames, request.getIdentityName()))
             }
             println("end of user Search script..." + result.subList(0, 10));
             response.setUserList(result)
@@ -78,7 +76,6 @@ class SearchScriptConnector extends AbstractCommandExecutor<UserConnectorObject,
     }
 
     private static UserConnectorObject jsonToUserConnector(LinkedHashMap jsonObj, Set<String> attributeNames, String identityName) {
-        println("Calling jsonToUserConnector");
         if (attributeNames == null)
             return null;
         UserConnectorObject userConnectorObject = new UserConnectorObject();
@@ -93,6 +90,7 @@ class SearchScriptConnector extends AbstractCommandExecutor<UserConnectorObject,
 
     private static StringConnectorAttribute fillAttribute(String name, String value) {
         StringConnectorAttribute attribute = new StringConnectorAttribute(name);
+
         attribute.addValue(new StringOperationalConnectorValue(value, AttributeOperationEnum.NO_CHANGE));
         return attribute;
     }
